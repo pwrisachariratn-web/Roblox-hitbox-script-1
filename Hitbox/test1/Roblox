@@ -1,0 +1,113 @@
+getgenv().fa = true
+local lp = game.Players.LocalPlayer
+
+getgenv().hitboxSize = Vector3.new(10, 10, 10)
+getgenv().hitboxTransparency = 0.7
+
+local function getHitbox(char)
+    return char:FindFirstChild("HumanoidRootPart")
+        or char:FindFirstChild("Torso")
+        or char:FindFirstChild("UpperTorso")
+end
+
+local originalSizes = {}
+
+local function expandHitbox(player)
+    if player ~= lp and player.Character then
+        local part = getHitbox(player.Character)
+        if part then
+            if not originalSizes[part] then
+                originalSizes[part] = part.Size -- เก็บขนาดเดิม
+            end
+            if getgenv().fa then
+                part.Size = part.Size:Lerp(getgenv().hitboxSize, 0.2)
+                part.Color = Color3.fromRGB(9, 137, 207)
+                part.Transparency = getgenv().hitboxTransparency
+                part.CanCollide = false
+            else
+                part.Size = part.Size:Lerp(originalSizes[part], 0.2)
+                part.Transparency = 0
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.1) do
+        for _, v in ipairs(game.Players:GetPlayers()) do
+            expandHitbox(v)
+        end
+    end
+end)
+
+game.Players.PlayerAdded:Connect(function(v)
+    v.CharacterAdded:Connect(function(char)
+        task.defer(function()
+            for i = 1, 5 do 
+                expandHitbox(v)
+                task.wait(0.2)
+            end
+        end)
+    end)
+end)
+
+warn("⚡ HitBox Loaded (Smooth + UI + OFF คืนค่า)")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "HitBoxUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = lp:WaitForChild("PlayerGui")
+
+local function createButton(text, pos)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 150, 0, 40)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 18
+    btn.Text = text
+    btn.Parent = screenGui
+    return btn
+end
+
+local function createTextBox(pos)
+    local box = Instance.new("TextBox")
+    box.Size = UDim2.new(0, 100, 0, 30)
+    box.Position = pos
+    box.Text = ""
+    box.ClearTextOnFocus = false
+    box.TextScaled = true
+    box.Parent = screenGui
+    return box
+end
+
+local toggleButton = createButton("HitBox: ON", UDim2.new(0, 20, 0, 20))
+toggleButton.MouseButton1Click:Connect(function()
+    getgenv().fa = not getgenv().fa
+    if getgenv().fa then
+        toggleButton.Text = "HitBox: ON"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    else
+        toggleButton.Text = "HitBox: OFF"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+    end
+end)
+
+local sizeBox = createTextBox(UDim2.new(0, 20, 0, 70))
+sizeBox.FocusLost:Connect(function()
+    local val = tonumber(sizeBox.Text)
+    if val then
+        getgenv().hitboxSize = Vector3.new(val, val, val)
+    end
+end)
+
+local transBox = createTextBox(UDim2.new(0, 140, 0, 70))
+transBox.FocusLost:Connect(function()
+    local t = tonumber(transBox.Text)
+    if t and t >= 0 and t <= 1 then
+        getgenv().hitboxTransparency = t
+    else
+        transBox.Text = tostring(getgenv().hitboxTransparency)
+    end
+end)
